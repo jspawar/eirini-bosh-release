@@ -1,4 +1,6 @@
 set -e
 
+source /var/vcap/packages/golang-1.12-linux/bosh/compile.env
+
 cd ${BUILD_DIR}/github.com/SUSE/eirini-persi-broker
 go mod vendor
