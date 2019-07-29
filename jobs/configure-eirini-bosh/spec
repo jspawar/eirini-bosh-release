@@ -8,6 +8,8 @@ packages:
 
 templates:
   run.erb: bin/run
+
+  kube.conf.erb: config/kube.conf
   eirini-daemonset.yaml.erb: config/eirini-daemonset.yaml
   fluentd-configmap.yaml.erb: config/fluentd-configmap.yaml
 
@@ -26,10 +28,21 @@ properties:
     description: "CF's doppler address, used to stream application logs"
   eirini.doppler_address_with_az:
     description: "CF's doppler address for the current AZ, used to stream application logs"
+
+  eirini.k8s.host_url:
+    description: "URL of k8s node"
+  eirini.k8s.node_ca:
+    description: "CA certificate for k8s node"
+  eirini.k8s.service_account.name:
+    description: "Username of service account Eirini will operate on k8s with"
+  eirini.k8s.service_account.token:
+    description: "Token of service account Eirini will operate on k8s with"
+
   opi.workloads_namespace:
     description: "Kubernetes namespace where to run deployments and tasks"
   opi.system_namespace:
     description: "Kubernetes namespace where to deploy Eirini components"
+
   eirini.service_account:
     description: "The service account used by fluentd to access pod information"
   loggregator.ca-cert:
