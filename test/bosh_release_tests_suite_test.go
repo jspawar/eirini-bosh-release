@@ -11,10 +11,13 @@ import (
 
 	"io/ioutil"
 
+	"encoding/json"
+
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/onsi/gomega/gexec"
 	v1 "k8s.io/api/core/v1"
+	rbacv1 "k8s.io/api/rbac/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -40,6 +43,7 @@ func TestBoshReleaseTests(t *testing.T) {
 	RunSpecs(t, "BoshReleaseTests Suite")
 }
 
+// TODO: create and upload release?
 var _ = SynchronizedBeforeSuite(func() []byte { return nil }, func([]byte) {
 	kubeConfig = getKubeConfigFromEnv()
 	kubeNamespace = createTestKubeNamespace()
@@ -48,6 +52,7 @@ var _ = SynchronizedBeforeSuite(func() []byte { return nil }, func([]byte) {
 
 // var _ = SynchronizedAfterSuite(func() {
 // 	deleteTestKubeNamespace()
+//  TODO: delete cluster role binding bc it isnt' namespaced!!
 // }, func() {})
 
 func getKubeConfigFromEnv() *rest.Config {
@@ -83,6 +88,20 @@ func createTestServiceAccount() (string, string) {
 	})
 	Expect(err).To(BeNil())
 
+	_, err = kubeClientset.RbacV1().ClusterRoleBindings().Create(&rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("bosh-release-tests-service-account-%s-cluster-admin", kubeNamespace)},
+		Subjects: []rbacv1.Subject{{
+			Kind:      "ServiceAccount",
+			Name:      "bosh-release-tests-service-account",
+			Namespace: kubeNamespace,
+		}},
+		RoleRef: rbacv1.RoleRef{
+			Kind: "ClusterRole",
+			Name: "cluster-admin",
+		},
+	})
+	Expect(err).To(BeNil())
+
 	var secrets []v1.ObjectReference
 	Eventually(func() []v1.ObjectReference {
 		s, err := kubeClientset.CoreV1().ServiceAccounts(kubeNamespace).Get("bosh-release-tests-service-account", metav1.GetOptions{})
@@ -107,29 +126,47 @@ func deleteTestKubeNamespace() {
 	Expect(kubeClientset.CoreV1().Namespaces().Delete(kubeNamespace, &metav1.DeleteOptions{})).To(Succeed())
 }
 
+// TODO: maybe rename this and delete the file after
+func makestupiduglyvarsfile() string {
+	garbage := map[string]string{
+		"k8s_host_url":         kubeConfig.Host,
+		"k8s_node_ca":          string(kubeConfig.TLSClientConfig.CAData),
+		"k8s_system_namespace": kubeNamespace,
+		"k8s_service_username": kubeServiceAccountName,
+		"k8s_service_token":    kubeServiceAccountToken,
+	}
+	bs, err := json.Marshal(garbage)
+	Expect(err).To(BeNil())
+
+	f, err := ioutil.TempFile("", "bosh-deploy-vars-*.json")
+	Expect(err).To(BeNil())
+
+	Expect(ioutil.WriteFile(f.Name(), bs, 0644)).To(Succeed())
+
+	return f.Name()
+}
+
 func boshDeploy(opsFiles ...string) {
 	actualDeployCmd := make([]string, len(boshDeployCmd))
 	copy(actualDeployCmd, boshDeployCmd)
 	for _, opsFile := range opsFiles {
 		actualDeployCmd = append(actualDeployCmd, "-o", opsFile)
 	}
-	actualDeployCmd = append(actualDeployCmd, "-v", "k8s_host_url="+kubeConfig.Host)
-	actualDeployCmd = append(actualDeployCmd, "-v", "k8s_node_ca="+string(kubeConfig.TLSClientConfig.CAData))
-	actualDeployCmd = append(actualDeployCmd, "-v", "k8s_system_namespace="+kubeNamespace)
-	actualDeployCmd = append(actualDeployCmd, "-v", "k8s_service_username="+kubeServiceAccountName)
-	actualDeployCmd = append(actualDeployCmd, "-v", "k8s_service_token="+kubeServiceAccountToken)
+	actualDeployCmd = append(actualDeployCmd, "-l", makestupiduglyvarsfile())
 
 	cmd := exec.Command("bosh", actualDeployCmd...)
+
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).To(BeNil())
 	Eventually(session, "5m").Should(gexec.Exit(0))
 }
 
-func boshRunErrand(errandName string) *gexec.Session {
+func boshRunErrand(errandName, timeout string, expectedStatusCode int) *gexec.Session {
 	runErrandCmd := []string{"-d", "eirini", "run-errand", errandName}
 	cmd := exec.Command("bosh", runErrandCmd...)
 	session, err := gexec.Start(cmd, GinkgoWriter, GinkgoWriter)
 	Expect(err).To(BeNil())
+	Eventually(session, timeout).Should(gexec.Exit(expectedStatusCode))
 	return session
 }
 

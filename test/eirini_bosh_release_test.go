@@ -12,6 +12,9 @@ var _ = Describe("EiriniBoshRelease", func() {
 		boshDeployOpsFiles []string
 
 		session *gexec.Session
+
+		expectedExitCode int
+		errandTimeout    string
 	)
 
 	Describe("when eirini has been BOSH-deployed successfully", func() {
@@ -25,20 +28,18 @@ var _ = Describe("EiriniBoshRelease", func() {
 
 		Describe("and I run the configure-eirini-bosh errand", func() {
 			JustBeforeEach(func() {
-				session = boshRunErrand("configure-eirini-bosh")
+				session = boshRunErrand("configure-eirini-bosh", errandTimeout, expectedExitCode)
 			})
 
 			Context("configured to reference an image that does not exist", func() {
 				BeforeEach(func() {
-					// 1. configure the errand
-					// 1. deploy eirini
-					// 1. run the errand
 					boshDeployOpsFiles = []string{"operations/invalid-image-reference-for-errand.yml"}
+					errandTimeout = "5m"
+					expectedExitCode = 1
 				})
 
 				It("the errand should error out with a meaningful message", func() {
-					Eventually(session, "5m").ShouldNot(gexec.Exit(0))
-					Expect(session).Should(Say("repository does not exist"))
+					Expect(session).Should(Say("Error: ImagePullBackOff"))
 				})
 			})
 

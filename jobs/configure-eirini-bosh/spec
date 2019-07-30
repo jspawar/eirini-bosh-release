@@ -10,6 +10,7 @@ templates:
   run.erb: bin/run
 
   kube.conf.erb: config/kube.conf
+  node_ca.crt.erb: config/node_ca.crt
   eirini-daemonset.yaml.erb: config/eirini-daemonset.yaml
   fluentd-configmap.yaml.erb: config/fluentd-configmap.yaml
 
