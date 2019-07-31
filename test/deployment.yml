@@ -25,7 +25,7 @@ instance_groups:
         doppler_address: 10.0.255.1:8082
         doppler_address_with_az: 10.0.255.1:8082
         fluentd_image: paswok/loggregator-fluentd
-        loggregator_agent_image: paswok/loggregator-agent
+        loggregator_agent_image: paswok/loggregator-fluentd-flattened
         service_account: ((k8s_service_username))
         k8s:
           host_url: ((k8s_host_url))

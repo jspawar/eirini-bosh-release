@@ -48,7 +48,7 @@ TIME_FINISH=${time_dir}/finish.timestamp
 
 touch ${TIME_NOW}
 # TODO: make timeout configurable
-touch -d "10 minutes" ${TIME_FINISH}
+touch -d "<%= p('errand.timeout') %> minutes" ${TIME_FINISH}
 
 # "-ot" is "older than"
 while [ "${TIME_NOW}" -ot "${TIME_FINISH}" ]; do
@@ -63,7 +63,7 @@ while [ "${TIME_NOW}" -ot "${TIME_FINISH}" ]; do
   check_for_pod_failures
 
   echo "Sleeping for a second..."
-	sleep 1
+  sleep 1
 done
 
 # failed to finish in time

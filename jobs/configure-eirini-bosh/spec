@@ -35,20 +35,22 @@ properties:
   eirini.k8s.node_ca:
     description: "CA certificate for k8s node"
   eirini.k8s.service_account.name:
-    description: "Username of service account Eirini will operate on k8s with"
+    description: "The service account used by fluentd to access pod information"
   eirini.k8s.service_account.token:
-    description: "Token of service account Eirini will operate on k8s with"
+    description: "Token for the service account fluentd uses to access pod information"
 
   opi.workloads_namespace:
     description: "Kubernetes namespace where to run deployments and tasks"
   opi.system_namespace:
     description: "Kubernetes namespace where to deploy Eirini components"
 
-  eirini.service_account:
-    description: "The service account used by fluentd to access pod information"
   loggregator.ca-cert:
     description: "CA certificate that is signing the server certificate of the target doppler and loggregator agent"
   loggregator.agent-cert:
     description: "Certificate of the loggregator agent"
   loggregator.agent-cert-key:
     description: "Private key of the loggregator agent"
+
+  errand.timeout:
+    description: "Number of minutes to let Kubernetes converge state before the errand fails forcefully."
+    default: 5

@@ -14,7 +14,6 @@ var _ = Describe("EiriniBoshRelease", func() {
 		session *gexec.Session
 
 		expectedExitCode int
-		errandTimeout    string
 	)
 
 	Describe("when eirini has been BOSH-deployed successfully", func() {
@@ -28,13 +27,12 @@ var _ = Describe("EiriniBoshRelease", func() {
 
 		Describe("and I run the configure-eirini-bosh errand", func() {
 			JustBeforeEach(func() {
-				session = boshRunErrand("configure-eirini-bosh", errandTimeout, expectedExitCode)
+				session = boshRunErrand("configure-eirini-bosh", "5m", expectedExitCode)
 			})
 
 			Context("configured to reference an image that does not exist", func() {
 				BeforeEach(func() {
 					boshDeployOpsFiles = []string{"operations/invalid-image-reference-for-errand.yml"}
-					errandTimeout = "5m"
 					expectedExitCode = 1
 				})
 
@@ -43,10 +41,28 @@ var _ = Describe("EiriniBoshRelease", func() {
 				})
 			})
 
-			Context("configured with an invalid service account", func() {})
+			Context("configured with an invalid service account", func() {
+				BeforeEach(func() {
+					boshDeployOpsFiles = []string{"operations/invalid-service-account-for-errand.yml"}
+					expectedExitCode = 1
+				})
 
-			Context("configured correctly", func() {
-				Context("and the errand has been running longer than a configured timeout", func() {})
+				It("the errand should error out with a meaningful message", func() {
+					Expect(session).Should(Say("Unauthorized"))
+				})
+			})
+
+			FContext("configured correctly", func() {
+				Context("and the errand has been running longer than a configurable timeout", func() {
+					BeforeEach(func() {
+						boshDeployOpsFiles = []string{"operations/short-timeout-for-errand.yml"}
+						expectedExitCode = 1
+					})
+
+					It("the errand should error out because of the configured timeout", func() {
+						Expect(session).Should(Say("Unauthorized"))
+					})
+				})
 			})
 		})
 	})
